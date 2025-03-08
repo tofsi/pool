@@ -40,6 +40,7 @@ def simulate(state, pocketed, action):
             ball.update()
             # Apply collisions between ball, wall
             if physics.line_ball_collision_check():
+                pass
 
         # Apply collisions between balls
         for ball, other_ball in combinations(balls, 2):
