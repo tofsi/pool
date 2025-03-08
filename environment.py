@@ -71,8 +71,8 @@ class PoolEnvironment(gym.Env):
                 reward = np.sum(self.pocketed - old_pocketed) / collisions
             terminated = all_non_white_balls_pocketed
         # We need the old "done" formulation
-        print("Reward: ",reward)
-        print("Collisions: ",collisions)
+        if reward > 0:
+            print("Reward: ",reward)
         return self.get_flat_obs(), reward, terminated or truncated, info
 
     def reset(self):

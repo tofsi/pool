@@ -11,10 +11,10 @@ sys.path.append(spinningup_path)
 import spinningup_tf2.spinup_bis as spinup
 
 if __name__ == "__main__":
-    state = np.array([[500,
-                        200], [600,200]], dtype=np.float32)
-    pocketed = np.zeros(2, np.int8)
-    action = np.array([1.0, np.arctan(260.0/460.0) / (2*np.pi)])
-    print(simulate(state, pocketed, action))
-    # def environment_function(): return PoolEnvironment()
-    #spinup.ddpg_tf2(environment_function)
+    # state = np.array([[500,
+    #                     200], [600,200]], dtype=np.float32)
+    # pocketed = np.zeros(2, np.int8)
+    # action = np.array([1.0, np.arctan(260.0/460.0) / (2*np.pi)])
+    # print(simulate(state, pocketed, action))
+    def environment_function(): return PoolEnvironment()
+    spinup.ddpg_tf2(environment_function)

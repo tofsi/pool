@@ -16,7 +16,8 @@ from itertools import combinations, product
 _max_force = 15
 
 def get_initial_state(ball_count):
-    initial_ball_positions = np.empty((ball_count,2))
+    # initial_ball_positions = np.empty((ball_count,2))
+    initial_ball_positions = np.array([[500.0,200.0],[600.0,200.0]], dtype = np.float32)
     return initial_ball_positions
 
 def action_to_velocity(action):
