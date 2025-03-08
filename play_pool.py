@@ -14,6 +14,9 @@ import pandas as pd
 from itertools import combinations, product
 _max_force = 1
 
+def get_initial_state(ball_count):
+    initial_ball_positions = np.empty((ball_count,2))
+    return initial_ball_positions
 
 def action_to_velocity(action):
     force = action[0]
