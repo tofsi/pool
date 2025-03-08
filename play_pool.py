@@ -12,7 +12,7 @@ from poolsim.pool import table_sprites
 import numpy as np
 import pandas as pd
 from itertools import combinations, product
-_max_force = 1
+_max_force = 15
 
 def get_initial_state(ball_count):
     initial_ball_positions = np.empty((ball_count,2))
@@ -25,7 +25,7 @@ def action_to_velocity(action):
     y = force * _max_force * np.sin(angle * 2 * np.pi)
     return np.array((x, y))
 
-def gen_table_sides():
+def setup_table():
     table_sides = []
     table_side_points = np.empty((1, 2))
     # holes_x and holes_y holds the possible xs and ys of the table holes
@@ -75,7 +75,7 @@ def gen_table_sides():
                 [point, table_side_points[num + 1]]))
     table_sides.append(table_sprites.TableSide(
         [table_side_points[-1], table_side_points[0]]))
-    return table_sides
+    return table_sides, all_hole_positions[:, :, 0]
 
 def simulate(state, pocketed, action):
     n_balls = state.shape[0]
@@ -85,17 +85,18 @@ def simulate(state, pocketed, action):
     # Set initial positions of balls
     balls = np.array([ball.Ball() for k in range(n_balls)])
     for i, b in enumerate(balls):
-        b.pos = state[i:i+2]
+        b.pos = state[i, :]
     
-    balls[0].set_velocity(action_to_velocity(action)) # Velocity of white ball
-    table_sides = gen_table_sides()
+    balls[0].velocity = action_to_velocity(action) # Velocity of white ball
+    table_sides, holes = setup_table()
     all_stationary = False
     active_balls = {i : b for i, b in enumerate(balls) if not pocketed[i]}
-    
+    iter_count = 0
     while not all_stationary:
+        iter_count+=1
         # Check pocketed
         for i, b in active_balls.items():
-            for hole in []:
+            for hole in holes:
                 if physics.distance_less_equal(b.pos, hole, config.hole_radius):
                     pocketed[i] = 1
                     active_balls.pop(i)
@@ -108,6 +109,7 @@ def simulate(state, pocketed, action):
             for line in table_sides:
                 if physics.line_ball_collision_check(line, b):
                     physics.collide_line_ball(line, b)
+                    num_collisions += 1
                     break
         
 
@@ -117,8 +119,14 @@ def simulate(state, pocketed, action):
             if physics.ball_collision_check(b, other_b):
                 physics.collide_balls(b, other_b)
                 num_collisions += 1 # Add for all collisions
-        if all([(b.velocity == np.zeros(2, np.float32).all()) for b in active_balls]):
+
+        # print([b.pos for b in active_balls.values()])
+
+        if all([(b.velocity == np.zeros(2, np.float32)).all() for b in active_balls.values()]):
             all_stationary = True
+    new_state = np.array([b.pos for b in balls])
+    # print(config.resolution)
+    return new_state, pocketed, num_collisions
     
 
 

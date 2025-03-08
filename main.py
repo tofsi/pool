@@ -1,9 +1,17 @@
 from environment import PoolEnvironment
 import sys
 from pathlib import Path
-spinningup_path = str(Path.cwd())+"/pool/spinningup_tf2"
-sys.path.append(spinningup_path)
-import spinningup_tf2.spinup_bis as spinup
+import numpy as np
+from poolsim.pool import config
+from play_pool import simulate
+# spinningup_path = str(Path.cwd())+"/pool/spinningup_tf2"
+# sys.path.append(spinningup_path)
+# import spinningup_tf2.spinup_bis as spinup
 if __name__ == "__main__":
-    def environment_function(): return PoolEnvironment()
-    spinup.ddpg_tf2(environment_function)
+    state = np.array([[500,
+                        200], [600,200]], dtype=np.float32)
+    pocketed = np.zeros(2, np.int8)
+    action = np.array([1.0, 0.0])
+    print(simulate(state, pocketed, action))
+    #def environment_function(): return PoolEnvironment()
+    #spinup.ddpg_tf2(environment_function)
