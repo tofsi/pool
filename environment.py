@@ -26,7 +26,7 @@ class PoolEnvironment(gym.Env):
                 # Instance attributes
         self.ball_count = ball_count
         self.balls = get_initial_state(ball_count) # Array of (x,y) positions
-        self.pocketed = np.zeros(ball_count)  # Categorical indicators for balls pocketed
+        self.pocketed = np.zeros(ball_count, np.int8)  # Categorical indicators for balls pocketed
         
         # Define action space - angle and force
         self.action_space = gym.spaces.Box(
@@ -49,26 +49,31 @@ class PoolEnvironment(gym.Env):
         (angle, force) = action
 
         observation = ()
-        reward = 0
+        reward = 0.0
         terminated = False
         truncated = False
         info = ""
 
-        new_ball_positions, newly_pocketed, collisions = simulate(self.balls,self.pocketed, action)
-
-        pocketed = pocketed + newly_pocketed
+        new_ball_positions, new_pocketed, collisions = simulate(self.balls,self.pocketed, action)
+        old_pocketed = self.pocketed.copy()
+        self.pocketed = new_pocketed
         self.balls = new_ball_positions
-        white_ball_pocketed = newly_pocketed[0] == 1 # This is a terminal state
-        all_non_white_balls_pocketed = np.sum(pocketed) == self.ball_count - 1 and not white_ball_pocketed
+        white_ball_pocketed = new_pocketed[0] == 1 # This is a terminal state
+        all_non_white_balls_pocketed = np.sum(self.pocketed) == self.ball_count - 1 and not white_ball_pocketed
 
         if white_ball_pocketed:
-            reward = -1 
+            reward = -1.0
             terminated = True
         else:
-            reward = np.sum(newly_pocketed) / collisions
+            if collisions == 0:
+                reward = -1.0
+            else:    
+                reward = np.sum(self.pocketed - old_pocketed) / collisions
             terminated = all_non_white_balls_pocketed
-        
-        return self.get_flat_obs(), reward, terminated, truncated, info
+        # We need the old "done" formulation
+        print("Reward: ",reward)
+        print("Collisions: ",collisions)
+        return self.get_flat_obs(), reward, terminated or truncated, info
 
     def reset(self):
         self.balls = get_initial_state(self.ball_count)

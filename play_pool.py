@@ -42,6 +42,7 @@ def setup_table():
     all_hole_positions = np.fliplr(all_hole_positions)
     all_hole_positions = np.vstack(
         (all_hole_positions[:3], np.flipud(all_hole_positions[3:])))
+    print(all_hole_positions)
     for hole_pos in all_hole_positions:
         # this will generate the diagonal, vertical and horizontal table
         # pieces which will reflect the ball when it hits the table sides
@@ -99,9 +100,9 @@ def simulate(state, pocketed, action):
             for hole in holes:
                 if physics.distance_less_equal(b.pos, hole, config.hole_radius):
                     pocketed[i] = 1
-                    active_balls.pop(i)
                     break
-        
+        active_balls = {i : b for i, b in enumerate(balls) if not pocketed[i]}
+
         # Move balls
         for b in balls:
             b.update()

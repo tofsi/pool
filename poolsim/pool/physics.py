@@ -66,8 +66,6 @@ def line_ball_collision_check(line, ball):
     distance_check = distance_less_equal(line.middle, ball.pos, line.length / 2 + config.ball_radius)
     if distance_check:
         #print("line: ",line.middle)
-        print("line", line.line)
-        print("ball: ", ball.pos)
         # displacement vector from the first point to the ball
         displacement_to_ball = ball.pos - line.line[0]
         # displacement vector from the first point to the second point on the
