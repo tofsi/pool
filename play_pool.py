@@ -1,3 +1,4 @@
+"""Authors: Tove Nordmark and Hedwig Nordlinder"""
 from poolsim.pool import ball
 from poolsim.pool import collisions
 from poolsim.pool import config
@@ -19,13 +20,28 @@ def get_initial_state(ball_count):
     return initial_ball_positions
 
 def action_to_velocity(action):
+    """Converts an action of the form ( force/max_force, angle/2pi) into
+    a velocity represented as np.array([v_x, v_y])"""
     force = action[0]
     angle = action[1]
-    x = force * _max_force * np.cos(angle * 2 * np.pi)
-    y = force * _max_force * np.sin(angle * 2 * np.pi)
-    return np.array((x, y))
+    v_x = force * _max_force * np.cos(angle * 2 * np.pi)
+    v_y = force * _max_force * np.sin(angle * 2 * np.pi)
+    return np.array((v_x, v_y))
 
 def setup_table():
+    """ Sets up the pool table excluding balls
+
+    Returns:
+    --------
+    tuple
+        list
+            A list of table_sprites.TableSide instances representing the 
+            edges of the table
+        numpy.array
+            An array containing the positions of holes on the board
+            axis 0: hole index
+            axis 1: coordinates
+    """
     table_sides = []
     table_side_points = np.empty((1, 2))
     # holes_x and holes_y holds the possible xs and ys of the table holes
@@ -78,6 +94,32 @@ def setup_table():
     return table_sides, all_hole_positions[:, :, 0]
 
 def simulate(state, pocketed, action):
+    """Runs a simulation of a pool game
+
+    Parameters:
+    -----------
+    state: numpy.array(shape=(num_balls, 2), dtype=np.float32)
+        Axis 0 is the ball index. index = 0 denotes the white ball
+        Axis 1 contains the initial ball coordinates (x, y)
+    pocketed: numpy.array(shape=(num_balls), dtype=np.int8)
+        An array with values 1 at index i if corresponding ball is pocketed
+    action: numpy.array(shape=(2), dtype=np.float32)
+        The first value is the force applied to the white ball (between 0 and 1)
+        The second value is the angle to the positive x axis as a fraction of 2 pi
+    
+    Returns:
+    --------
+
+    tuple
+        numpy.array(shape=(num_balls, 2), dtype=np.float32)
+            Axis 0 is the ball index. index = 0 denotes the white ball
+            Axis 1 contains the final ball coordinates (x, y)
+        numpy.array(shape=(num_balls), dtype=np.int8)
+            An array with values 1 at index i if corresponding ball is pocketed
+        int
+            The total number of collisions during the simulation
+        
+    """
     n_balls = state.shape[0]
     # Should return next_state, next_pocketed, n_collisions
     pocketed = pocketed.copy()
@@ -91,9 +133,7 @@ def simulate(state, pocketed, action):
     table_sides, holes = setup_table()
     all_stationary = False
     active_balls = {i : b for i, b in enumerate(balls) if not pocketed[i]}
-    iter_count = 0
     while not all_stationary:
-        iter_count+=1
         # Check pocketed
         for i, b in active_balls.items():
             for hole in holes:
@@ -101,7 +141,6 @@ def simulate(state, pocketed, action):
                     pocketed[i] = 1
                     active_balls.pop(i)
                     break
-        
         # Move balls
         for b in balls:
             b.update()
@@ -111,30 +150,17 @@ def simulate(state, pocketed, action):
                     physics.collide_line_ball(line, b)
                     num_collisions += 1
                     break
-        
-
-
         # Apply collisions between balls
         for b, other_b in combinations(balls, 2):
             if physics.ball_collision_check(b, other_b):
                 physics.collide_balls(b, other_b)
                 num_collisions += 1 # Add for all collisions
-
-        # print([b.pos for b in active_balls.values()])
-
         if all([(b.velocity == np.zeros(2, np.float32)).all() for b in active_balls.values()]):
             all_stationary = True
+    
     new_state = np.array([b.pos for b in balls])
-    # print(config.resolution)
     return new_state, pocketed, num_collisions
     
-
-
-        
-        
-    
-    
-
 if __name__=="__main__":
     state = 30*np.array([[config.table_margin + config.resolution[0] // 3,
                         config.table_margin + config.resolution[1] // 3],
