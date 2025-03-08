@@ -117,7 +117,7 @@ def simulate(state, pocketed, action):
             if physics.ball_collision_check(b, other_b):
                 physics.collide_balls(b, other_b)
                 num_collisions += 1 # Add for all collisions
-        if all([(b.velocity == np.zeros(2, np.float32)) for b in active_balls]):
+        if all([(b.velocity == np.zeros(2, np.float32).all()) for b in active_balls]):
             all_stationary = True
     
 

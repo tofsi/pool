@@ -2,7 +2,7 @@ from typing import Optional
 import numpy as np
 import gymnasium as gym
 
-from play_pool import simulate
+from play_pool import simulate, get_initial_state
 
 # Our observation space is [array of positions] + [pocketed balls]
 class PoolEnvironment(gym.Env):
