@@ -139,10 +139,10 @@ def simulate(state, pocketed, action):
             for hole in holes:
                 if physics.distance_less_equal(b.pos, hole, config.hole_radius):
                     pocketed[i] = 1
-                    active_balls.pop(i)
                     break
+        active_balls = {i : b for i, b in enumerate(balls) if not pocketed[i]}
         # Move balls
-        for b in balls:
+        for b in active_balls.values():
             b.update()
             # Apply collisions between balls, walls
             for line in table_sides:
@@ -151,7 +151,7 @@ def simulate(state, pocketed, action):
                     num_collisions += 1
                     break
         # Apply collisions between balls
-        for b, other_b in combinations(balls, 2):
+        for b, other_b in combinations(active_balls.values(), 2):
             if physics.ball_collision_check(b, other_b):
                 physics.collide_balls(b, other_b)
                 num_collisions += 1 # Add for all collisions
