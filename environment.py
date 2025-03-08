@@ -25,13 +25,20 @@ class PoolEnvironment(gym.Env):
         )
         
         
-        self.observation_space = gym.spaces.Box(
-            low=-np.inf, 
-            high=np.inf, 
-            shape=(3 * ball_count,), 
-            dtype=np.float32
-        )   
-        
+        self.observation_space = gym.spaces.Dict({
+            'positions': gym.spaces.Box(
+                low=-np.inf, 
+                high=np.inf, 
+                shape=(ball_count, 2),  # ball_count tuples of (x, y) positions
+                dtype=np.float32
+            ),
+            'pocketed': gym.spaces.Box(
+                low=0, 
+                high=1, 
+                shape=(ball_count,),  # Integer indicators for pocketed balls
+                dtype=np.int8
+            )
+        })
         print("Initialised")
 
     def step(self, action): # An action is a tuple of (angle, share_of_max_force). 
@@ -46,24 +53,23 @@ class PoolEnvironment(gym.Env):
         new_ball_positions, newly_pocketed, collisions = simulate(self.balls,self.pocketed, action)
 
         pocketed = pocketed + newly_pocketed
-        self.ball_positions = new_ball_positions
+        self.balls = new_ball_positions
         white_ball_pocketed = newly_pocketed[0] == 1 # This is a terminal state
         all_non_white_balls_pocketed = np.sum(pocketed) == self.ball_count - 1 and not white_ball_pocketed
 
-
+        observation = {
+            'positions': np.array(self.balls, dtype=np.float32),
+            'pocketed': self.pocketed.astype(np.int8)
+        }
         if white_ball_pocketed:
             reward = -1 
             terminated = True
-            observation = (self.balls, self.pocketed)
         else:
             reward = np.sum(newly_pocketed) / collisions
             terminated = all_non_white_balls_pocketed
-            observation = (self.balls, self.pocketed)
         
         return observation, reward, terminated, truncated, info
 
     def reset(self):
         self.balls = self.initial_ball_positions.copy()
         self.pocketed = np.zeros(self.ball_count)
-
-
