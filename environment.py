@@ -9,12 +9,24 @@ class PoolEnvironment(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array"]}
 
+    def get_flat_obs(self):
+        flat_obs = np.zeros(self.ball_count * 3, dtype=np.float32)
+        for i in range(self.ball_count):
+            base_idx = i * 3
+            if i < len(self.balls):
+                flat_obs[base_idx] = self.balls[i][0]     
+                flat_obs[base_idx + 1] = self.balls[i][1] 
+        
+            flat_obs[base_idx + 2] = self.pocketed[i]
+    
+        return flat_obs
+
+
     def __init__(self, ball_count = 2):
                 # Instance attributes
         self.ball_count = ball_count
-        self.balls = []  # Array of (x,y) positions
+        self.balls = get_initial_state(ball_count) # Array of (x,y) positions
         self.pocketed = np.zeros(ball_count)  # Categorical indicators for balls pocketed
-        self.initial_ball_positions = []
         
         # Define action space - angle and force
         self.action_space = gym.spaces.Box(
@@ -26,12 +38,11 @@ class PoolEnvironment(gym.Env):
         
         
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, 
-            high=np.inf, 
-            shape=(3 * ball_count,), 
+            low=np.array([-np.inf, -np.inf, 0] * ball_count),
+            high=np.array([np.inf, np.inf, 1] * ball_count),
+            shape=(ball_count * 3,),
             dtype=np.float32
-        )   
-        
+        )
         print("Initialised")
 
     def step(self, action): # An action is a tuple of (angle, share_of_max_force). 
@@ -46,24 +57,24 @@ class PoolEnvironment(gym.Env):
         new_ball_positions, newly_pocketed, collisions = simulate(self.balls,self.pocketed, action)
 
         pocketed = pocketed + newly_pocketed
-        self.ball_positions = new_ball_positions
+        self.balls = new_ball_positions
         white_ball_pocketed = newly_pocketed[0] == 1 # This is a terminal state
         all_non_white_balls_pocketed = np.sum(pocketed) == self.ball_count - 1 and not white_ball_pocketed
-
 
         if white_ball_pocketed:
             reward = -1 
             terminated = True
-            observation = (self.balls, self.pocketed)
         else:
             reward = np.sum(newly_pocketed) / collisions
             terminated = all_non_white_balls_pocketed
-            observation = (self.balls, self.pocketed)
         
-        return observation, reward, terminated, truncated, info
+        return self.get_flat_obs(), reward, terminated, truncated, info
 
     def reset(self):
-        self.balls = self.initial_ball_positions.copy()
+        self.balls = get_initial_state(self.ball_count)
         self.pocketed = np.zeros(self.ball_count)
-
-
+        info = {}
+    
+        return self.get_flat_obs(), info
+    
+    
