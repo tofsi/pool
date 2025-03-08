@@ -73,3 +73,10 @@ class PoolEnvironment(gym.Env):
     def reset(self):
         self.balls = self.initial_ball_positions.copy()
         self.pocketed = np.zeros(self.ball_count)
+        observation = {
+        'positions': np.array(self.balls, dtype=np.float32),
+        'pocketed': self.pocketed.astype(np.int8)
+        }
+        info = {}
+    
+        return observation, info
