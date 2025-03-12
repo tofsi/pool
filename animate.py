@@ -34,6 +34,8 @@ def animate(holes, lines, states, pocketed):
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.set_xlim(0, _width)
     ax.set_ylim(0, _height)
+    ax.set_xticks([])
+    ax.set_yticks([])
     ax.set_aspect("equal")
 
     ax.set_facecolor("green")
