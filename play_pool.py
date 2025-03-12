@@ -136,6 +136,7 @@ def simulate(state, pocketed, action):
     active_balls = {i : b for i, b in enumerate(balls) if not pocketed[i]}
     while not all_stationary:
         # Check pocketed
+        pocketed = pocketed.copy()
         for i, b in active_balls.items():
             for hole in holes:
                 if physics.distance_less_equal(b.pos, hole, config.hole_radius):
@@ -163,7 +164,7 @@ def simulate(state, pocketed, action):
     return new_state, pocketed, num_collisions
 
 def simulate_and_save_states(state, pocketed, action):
-    """Runs a simulation of a pool game
+    """Runs a simulation of a pool game and saves states over time
 
     Parameters:
     -----------
@@ -180,14 +181,16 @@ def simulate_and_save_states(state, pocketed, action):
     --------
 
     tuple
-        numpy.array(shape=(num_balls, 2), dtype=np.float32)
-            Axis 0 is the ball index. index = 0 denotes the white ball
-            Axis 1 contains the final ball coordinates (x, y)
-        numpy.array(shape=(num_balls), dtype=np.int8)
-            An array with values 1 at index i if corresponding ball is pocketed
-        int
-            The total number of collisions during the simulation
-        
+        numpy.array(shape=(episode_length, num_balls, 2), dtype=np.float32)
+            Axis 0 is the time index
+            Axis 1 is the ball index. index = 0 denotes the white ball
+            Axis 2 contains the final ball coordinates (x, y)
+        numpy.array(shape=(episode_length, num_balls), dtype=np.int8)
+            For each time, an array with values 1 at index i if corresponding ball is pocketed
+        numpy.array(shape=(6, 2), dtype=np.int8)
+            The positions of the holes (indexed (hole, x/y))
+        numpy.array(shape=(n_lines, 2, 2))
+            The lines delimiting the table (indexed (line, start/end, x/y)) 
     """
     n_balls = state.shape[0]
     # Should return next_state, next_pocketed, n_collisions
@@ -206,6 +209,7 @@ def simulate_and_save_states(state, pocketed, action):
     active_balls = {i : b for i, b in enumerate(balls) if not pocketed[i]}
     while not all_stationary:
         # Check pocketed
+        pocketed = pocketed.copy()
         for i, b in active_balls.items():
             for hole in holes:
                 if physics.distance_less_equal(b.pos, hole, config.hole_radius):
@@ -224,8 +228,8 @@ def simulate_and_save_states(state, pocketed, action):
         for b, other_b in combinations(active_balls.values(), 2):
             if physics.ball_collision_check(b, other_b):
                 physics.collide_balls(b, other_b)
-        states.append([b.pos for b in balls])
-        pocketed_over_time.append(pocketed)
+        states.append(np.array([b.pos for b in balls]))
+        pocketed_over_time.append(np.array(pocketed))
         if all([(b.velocity == np.zeros(2, np.float32)).all() for b in active_balls.values()]):
             all_stationary = True
     
@@ -236,13 +240,12 @@ def simulate_and_save_states(state, pocketed, action):
 
 
 if __name__=="__main__":
-    state = 30*np.array([[config.table_margin + config.resolution[0] // 3,
-                        config.table_margin + config.resolution[1] // 3],
-                        [config.table_margin + config.resolution[0] // 2,
-                        config.table_margin + config.resolution[1] // 2]])
-    pocketed = np.zeros(5, np.int8)
-    action = np.array([0.0, 1.0])
-    simulate(state, pocketed, action)
+    state = np.array([[500,
+                        200], [550,200],
+                        [550,205]], dtype=np.float32)
+    pocketed = np.zeros(3, np.int8)
+    action = np.array([1.0, 0])
+    print((state, pocketed, action))
 
 
 
