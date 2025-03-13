@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.patches as patches
 import matplotlib.lines as mlines
-from poolsim.pool import config
-from play_pool import simulate_and_save_states, simulate
+from fast_poolsim import simulate 
+from fast_poolsim import config
+import play_pool
 
-_width = config.resolution[0]
-_height = config.resolution[1]
 
-def animate(holes, lines, states, pocketed):
+def animate(states, pocketed):
     """Animates a pool shot
     
     Parameters:
@@ -32,21 +31,21 @@ def animate(holes, lines, states, pocketed):
     """
     # Plotting Setup
     fig, ax = plt.subplots(figsize=(8, 4))
-    ax.set_xlim(0, _width)
-    ax.set_ylim(0, _height)
+    ax.set_xlim(0, config.RESOLUTION[0])
+    ax.set_ylim(0, config.RESOLUTION[1])
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_aspect("equal")
 
     ax.set_facecolor("green")
     # Draw table edges and pockets
-    for line in lines:
+    for line in config.LINES:
         ax.add_line(mlines.Line2D([line[0, 0], line[1, 0]], [line[0, 1], line[1, 1]], color="black", lw=3))
 
     # Draw holes
     hole_circles = []
-    for hole in holes:
-        circle = plt.Circle(hole, config.hole_radius, color='black', fill=True, lw=3)
+    for hole in config.HOLES:
+        circle = plt.Circle(hole, config.HOLE_RADIUS, color='black', fill=True, lw=3)
         ax.add_patch(circle)
         hole_circles.append(circle)
 
@@ -55,7 +54,7 @@ def animate(holes, lines, states, pocketed):
     colors = ["red", "blue", "yellow", "purple", "orange", "pink", "cyan"]
     for i in range(states.shape[1]): 
         ball_color = "white" if i == 0 else colors[i % len(colors)]
-        ball = plt.Circle((0, 0), config.ball_radius, color=ball_color, fill=True)
+        ball = plt.Circle((0, 0), config.BALL_RADIUS, color=ball_color, fill=True)
         ax.add_patch(ball)
         balls.append(ball)
 
@@ -81,5 +80,8 @@ if __name__=="__main__":
                         [550,205]], dtype=np.float32)
     pocketed = np.zeros(3, np.int8)
     action = np.array([1.0, 0])
-    states, pocketed_over_time, holes, lines = simulate_and_save_states(state, pocketed, action)
-    animate(holes, lines, states, pocketed_over_time)
+    # faaast pool simulation!!!
+    states, pocketed_over_time = simulate.simulate_and_save_states(state, pocketed, action)
+    # Uncomment the following if you want to compare to the original pool simulation
+    # states, pocketed_over_time = play_pool.simulate_and_save_states(state, pocketed, action) 
+    animate(states, pocketed_over_time)

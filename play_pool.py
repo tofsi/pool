@@ -235,7 +235,7 @@ def simulate_and_save_states(state, pocketed, action):
     
     lines = np.array([side.line for side in table_sides])
     print(table_sides[0].middle, table_sides[0].line)
-    return np.array(states), np.array(pocketed_over_time), holes, lines
+    return np.array(states), np.array(pocketed_over_time)
 
 
 

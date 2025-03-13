@@ -1,17 +1,36 @@
 import numpy as np
+from itertools import product
 
-table_margin = 40
-resolution = (1000, 500)
-ball_radius = 15
+FLOAT_TYPE = np.float32
+INT_TYPE = np.int16
+
+MAX_FORCE = 15
+
+TABLE_MARGIN = 40
+RESOLUTION = (1000, 500)
+BALL_RADIUS = 14
 # physics
 # if the velocity of the ball is less then
 # friction threshold then it is stopped
-friction_threshold = 0.06
-friction_coeff = 0.99
+FRICTION_THRESHOLD = 0.06
+SQUARE_FRICTION_THRESHOLD = FRICTION_THRESHOLD ** 2
+FRICTION_COEFF = 0.99
 # 1 - perfectly elastic ball collisions
 # 0 - perfectly inelastic collisions
-ball_coeff_of_restitution = 0.9
-table_coeff_of_restitution = 0.9
+BALL_COEFF_OF_RESTITUTION = 0.9
+TABLE_COEFF_OF_RESTITUTION = 0.9
+
+HOLE_RADIUS =  22
+MIDDLE_HOLE_OFFSET = np.array([[-HOLE_RADIUS * 2, HOLE_RADIUS], [-HOLE_RADIUS, 0],
+                               [HOLE_RADIUS, 0], [HOLE_RADIUS * 2, HOLE_RADIUS]]).astype(INT_TYPE)
+SIDE_HOLE_OFFSET = np.array([
+    [- 2 * np.cos(np.radians(45)) * HOLE_RADIUS - HOLE_RADIUS, HOLE_RADIUS],
+    [- np.cos(np.radians(45)) * HOLE_RADIUS, -
+    np.cos(np.radians(45)) * HOLE_RADIUS],
+    [np.cos(np.radians(45)) * HOLE_RADIUS,
+     np.cos(np.radians(45)) * HOLE_RADIUS],
+    [- HOLE_RADIUS, 2 * np.cos(np.radians(45)) * HOLE_RADIUS + HOLE_RADIUS]
+]).astype(FLOAT_TYPE)
 
 def setup_table():
     """ Sets up the pool table excluding balls
@@ -27,15 +46,16 @@ def setup_table():
             axis 0: hole index
             axis 1: coordinates
     """
-    table_sides = []
+    lines = []
+    lengths = []
     table_side_points = np.empty((1, 2))
     # holes_x and holes_y holds the possible xs and ys of the table holes
     # with a position ID in the second tuple field
     # so the top left hole has id 1,1
-    holes_x = [(table_margin, 1), (resolution[0] /
-                                            2, 2), (resolution[0] - table_margin, 3)]
-    holes_y = [(table_margin, 1),
-                (resolution[1] - table_margin, 2)]
+    holes_x = [(TABLE_MARGIN, 1), (RESOLUTION[0] /
+                                            2, 2), (RESOLUTION[0] - TABLE_MARGIN, 3)]
+    holes_y = [(TABLE_MARGIN, 1),
+                (RESOLUTION[1] - TABLE_MARGIN, 2)]
     # next three lines are a hack to make and arrange the hole coordinates
     # in the correct sequence
     all_hole_positions = np.array(
@@ -58,9 +78,9 @@ def setup_table():
         if hole_pos[0][1] == 2:
             # hole_pos[0,1]=2 means x coordinate ID is 2 which means this
             # hole is in the middle
-            offset = config.middle_hole_offset
+            offset = MIDDLE_HOLE_OFFSET
         else:
-            offset = config.side_hole_offset
+            offset = SIDE_HOLE_OFFSET
         if hole_pos[1][1] == 2:
             offset = np.flipud(offset) * [1, -1]
         if hole_pos[0][1] == 1:
@@ -72,8 +92,12 @@ def setup_table():
     for num, point in enumerate(table_side_points[:-1]):
         # this will skip lines inside the circle
         if num % 4 != 1:
-            table_sides.append(table_sprites.TableSide(
-                [point, table_side_points[num + 1]]))
-    table_sides.append(table_sprites.TableSide(
+            lines.append(
+                [point, table_side_points[num + 1]])
+            lengths.append(np.sqrt(np.dot(point - table_side_points[num + 1], point - table_side_points[num + 1])))
+    lines.append((
         [table_side_points[-1], table_side_points[0]]))
-    return table_sides, all_hole_positions[:, :, 0]
+    lengths.append(np.sqrt(np.dot(table_side_points[-1] - table_side_points[0], table_side_points[-1] - table_side_points[0])))
+    return  all_hole_positions[:, :, 0].astype(FLOAT_TYPE), np.array(lines).astype(FLOAT_TYPE), np.array(lengths).astype(FLOAT_TYPE)
+
+HOLES, LINES, LENGTHS = setup_table()
