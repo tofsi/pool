@@ -1,3 +1,5 @@
+"""Author: Tove Nordmark
+This file defines the simulation environment through various constants."""
 import numpy as np
 from itertools import product
 
@@ -38,13 +40,18 @@ def setup_table():
     Returns:
     --------
     tuple
-        list
-            A list of table_sprites.TableSide instances representing the 
-            edges of the table
-        numpy.array
+        numpy.array(shape=(n_holes, 2), dtype=FLOAT_TYPE)
             An array containing the positions of holes on the board
             axis 0: hole index
             axis 1: coordinates
+        numpy.array(shape=(n_lines, 2, 2), dtype=FLOAT_TYPE)
+            An array containing the lines delimiting the table
+            axis 0: line number
+            axis 1: start/end point
+            axis 2: x/y coordinates
+        numpy.array(shape=(n_holes), dtype=FLOAT_TYPE)
+            An array containing the lengths of the lines delimiting
+            the table (stored because lengths are expensive to recompute)
     """
     lines = []
     lengths = []

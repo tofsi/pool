@@ -1,3 +1,7 @@
+"""Author: Tove Nordmark
+This file contains code for computing collisions, 
+updating ball positions and checking if balls are pocketed.
+"""
 import numpy as np
 from numba import njit
 from . import config
@@ -7,20 +11,23 @@ from . import config
 
 @njit
 def dot2(v1, v2):
+    """Returns the 2-dimensional dot product of v1 and v2"""
     return v1[0]*v2[0] + v1[1]*v2[1]
 
 @njit
 def point_distance(p1, p2):
-    """Euclidean distance between p1 and p2 (2d)"""
+    """Returns the Euclidean distance between p1 and p2 (2d)"""
     return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
 @njit
 def distance_less_equal(p1, p2, dist):
+    """Checks if the Euclidean distance between p1 and p2 is less than dist (True/False)"""
     dist_diff = p1 - p2
     return (dist_diff[0]**2 + dist_diff[1]**2) <= dist**2
 
 @njit
 def ball_collision_check(ball1, ball2):
+    """Checks if ball1, ball2 are currently colliding (True/False)"""
     pos1 = ball1[0, :]
     pos2 = ball2[0, :]
     vel1 = ball1[1, :]
@@ -34,7 +41,25 @@ def ball_collision_check(ball1, ball2):
 
 @njit
 def collide_balls(ball1, ball2):
-    """Return ball1, ball2 (position, velocity) after collision"""
+    """Return ball1, ball2 (position, velocity) after the current collision
+    Should only be run if ball_collision_check is True
+    
+    Parameters:
+    -----------
+    ball1 :
+        np.array(shape=(2, 2), dtype=config.FLOAT_TYPE)
+        Position and velocity of the first ball 
+        indices indicate (position/velocity, x/y)
+    ball2 :
+        np.array(shape = (2, 2), dtype=config.FLOAT_TYPE)
+        Position and velocity of the second ball 
+        indices indicate (position/velocity, x/y)
+
+    Returns:
+    --------
+    tuple(np.array(shape=(2, 2), dtype=config.FLOAT_TYPE), np.array(shape=(2, 2), dtype=config.FLOAT_TYPE)) :
+        The updated positions and velocities of ball1, ball2 respectively
+        after the collision. (indices indicate (position/velocity, x/y))"""
     pos1 = ball1[0, :]
     pos2 = ball2[0, :]
     vel1 = ball1[1, :]
@@ -55,20 +80,26 @@ def collide_balls(ball1, ball2):
     return ball1, ball2
 
 @njit
-def rotation_matrix(axis, theta):
-    # Return the rotation matrix associated with counterclockwise rotation about
-    # the given axis by theta radians.
-    axis = axis / np.sqrt(dot2(axis, axis))
-    a = np.cos(theta / 2.0)
-    b, c, d = -axis * np.sin(theta / 2.0)
-    aa, bb, cc, dd = a * a, b * b, c * c, d * d
-    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-    return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
-
-@njit
 def line_ball_collision_check(line, length, ball):
+    """Check if ball is currently colliding with line
+    
+    Parameters:
+    -----------
+    line :
+        np.array(shape=(2, 2), dtype=config.FLOAT_TYPE)
+        line segment from line[0, :] to line[1, :]
+    length :
+        float
+        Length of the line (stored for faster runtime)
+    ball :
+        np.array(shape=(2, 2), dtype=config.FLOAT_TYPE)
+        Position and velocity of the ball 
+        indices indicate (position/velocity, x/y)
+
+    Returns:
+    --------
+    bool
+        True if ball is colliding with line, else False"""
     # checks if the ball is half the line length from the line middle
     point1 = line[0, :]
     point2 = line[1, :]
@@ -113,7 +144,27 @@ def line_ball_collision_check(line, length, ball):
 
 @njit
 def collide_line_ball(line, length, ball):
-    """Return new ball (position, velocity) after collision"""
+    """Return new position and velocity of ball after collision with line
+    should only be run if line_ball_collision_check() is True
+    
+    Parameters:
+    -----------
+    line :
+        np.array(shape=(2, 2), dtype=config.FLOAT_TYPE)
+        line segment from line[0, :] to line[1, :]
+    length :
+        float
+        Length of the line (stored for faster runtime)
+    ball :
+        np.array(shape=(2, 2), dtype=config.FLOAT_TYPE)
+        Position and velocity of the ball 
+        indices indicate (position/velocity, x/y)
+
+    Returns:
+    --------
+    np.array(shape=(2, 2), dtype=config.FLOAT_TYPE)
+        New position and velocity of the ball after collision
+        indices indicate (position/velocity, x/y)"""
     pos = ball[0, :]
     vel = ball[1, :]
     displacement_to_second_point = line[1, :] - line[0, :]
@@ -129,7 +180,7 @@ def collide_line_ball(line, length, ball):
 
 @njit
 def update_ball(ball):
-    """Return updated ball positions after one time step"""
+    """Return updated ball position and velocity after one time step"""
     pos = ball[0, :]
     vel = ball[1, :]
 
@@ -142,6 +193,25 @@ def update_ball(ball):
 
 @njit
 def get_active_balls(balls, pocketed):
+    """Returns an array containing the non pocketed balls
+    and the indices of these balls in the original array
+    
+    Parameters:
+    -----------
+    balls : 
+        np.array(shape=(n_balls, 2, 2),dtype=config.FLOAT_TYPE)
+        The positions and velocities of all balls
+        Indices indicate (ball number, position/velocity, x/y)
+    pocketed :
+        np.array(shape=(n_balls), dtype=np.bool_)
+        pocketed[i] == True if ball i is pocketed, else False
+    
+    Returns:
+    --------
+    tuple(np.array(shape=(n_active, 2, 2), dtype=config.FLOAT_TYPE), np.array(shape=n_active, dtype=config.INT_TYPE)) :
+        The positions and velocities of the active balls and their indices in the
+        original array passed to this function.
+    """
     pocketed = pocketed.astype(np.bool_)
     n_active = (~pocketed).sum()
     active_balls = np.zeros((n_active, 2, 2), config.FLOAT_TYPE)
@@ -156,6 +226,30 @@ def get_active_balls(balls, pocketed):
 
 @njit
 def apply_collisions(balls, lines, lengths, pocketed):
+    """ Check and apply collisions between balls and each other/environment
+
+    Parameters:
+    -----------
+    balls :
+        np.array(shape=(n_balls, 2, 2, dtype=config.FLOAT_TYPE))
+        The positions and velocities of all balls
+        Indices indicate (ball number, position/velocity, x/y)
+    lines :
+        np.array(shape=(n_lines, 2, 2), dtype=config.FLOAT_TYPE)
+        line segment i goes from line[i, 0, :] to line[i, 1, :]
+    lengths :
+        np.array(shape=(n_lines), dtype=config.FLOAT_TYPE)
+        Lengths of the lines (stored for faster runtime)
+    pocketed :
+        np.array(shape=(n_balls), dtype=np.bool_)
+        pocketed[i] == True if ball i is pocketed, else False
+    
+    Returns:
+    --------
+    tuple(np.array(shape=(n_balls, 2, 2, dtype=config.FLOAT_TYPE)), int)
+        The updateds positions and velocities of the balls 
+        and the number of collisions occurring, respectively
+    """
     balls = balls.copy() # scared of modifying original array
     pocketed = pocketed.astype(np.bool_)
     active_balls, active_ball_indices = get_active_balls(balls, pocketed)
@@ -188,6 +282,23 @@ def apply_collisions(balls, lines, lengths, pocketed):
 
 @njit
 def move_balls(balls, pocketed):
+    """ Move balls one time step
+
+    Parameters:
+    -----------
+    balls :
+        np.array(shape=(n_balls, 2, 2, dtype=config.FLOAT_TYPE))
+        The positions and velocities of all balls
+        Indices indicate (ball number, position/velocity, x/y)
+    pocketed :
+        np.array(shape=(n_balls), dtype=np.bool_)
+        pocketed[i] == True if ball i is pocketed, else False
+    
+    Returns:
+    --------
+    np.array(shape=(n_balls, 2, 2, dtype=config.FLOAT_TYPE))
+        The updated positions and velocities of the balls 
+    """
     balls = balls.copy() # scared of modifying original array
     pocketed = pocketed.astype(np.bool_)
     for i in range(balls.shape[0]): # Go through balls
@@ -201,6 +312,24 @@ def move_balls(balls, pocketed):
 
 @njit
 def update_pocketed(balls, pocketed):
+    """Checks if any new balls are pocketed and updates the pocketed
+    array accordingly
+
+    Parameters:
+    -----------
+    balls :
+        np.array(shape=(n_balls, 2, 2, dtype=config.FLOAT_TYPE))
+        The positions and velocities of all balls
+        Indices indicate (ball number, position/velocity, x/y)
+    pocketed :
+        np.array(shape=(n_balls), dtype=np.bool_)
+        pocketed[i] == True if ball i is pocketed, else False
+    
+    Returns:
+    --------
+    np.array(shape=(n_balls, 2, 2, dtype=np.bool_))
+        The updated array of pocketed balls
+    """
     pocketed = pocketed.astype(np.bool_)
     active_balls, active_ball_indices = get_active_balls(balls, pocketed)
     for i in range(active_balls.shape[0]):
