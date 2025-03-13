@@ -1,7 +1,12 @@
+"""Author: Tove Nordmark
+Contains functions for simulating pool shots efficiently"""
+
 import numpy as np
 from numba import njit
 from . import config
 from . import physics
+
+
 @njit
 def action_to_velocity(action):
     """Converts an action of the form ( force/max_force, angle/2pi) into
